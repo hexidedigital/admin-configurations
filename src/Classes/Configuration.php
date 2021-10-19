@@ -5,7 +5,7 @@ namespace HexideDigital\AdminConfigurations\Classes;
 use HexideDigital\AdminConfigurations\Models\AdminConfiguration;
 use Illuminate\Database\Eloquent\Collection;
 
-class Configurations
+class Configuration
 {
 
     public const type_TITLE = 'title'; // short text /input - type=text

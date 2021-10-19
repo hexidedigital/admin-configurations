@@ -5,16 +5,16 @@ namespace HexideDigital\AdminConfigurations\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * Class ConfigurationsFacade
+ * Class ConfigurationFacade
  * @package HexideDigital\AdminConfigurations\Facades
  */
-class ConfigurationsFacade extends Facade
+class ConfigurationFacade extends Facade
 {
     /**
      * @return string
      */
     protected static function getFacadeAccessor()
     {
-        return 'admin_configurations';
+        return 'admin_configuration';
     }
 }

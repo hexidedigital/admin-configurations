@@ -2,7 +2,7 @@
 
 namespace HexideDigital\AdminConfigurations;
 
-use HexideDigital\AdminConfigurations\Classes\Configurations;
+use HexideDigital\AdminConfigurations\Classes\Configuration;
 use Illuminate\Support\ServiceProvider;
 
 class AdminConfigurationsServiceProvider extends ServiceProvider
@@ -34,7 +34,7 @@ class AdminConfigurationsServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/admin_configurations.php', 'admin_configurations');
 
-        $this->app->bind('admin_configurations', Configurations::class);
+        $this->app->bind('admin_configuration', Configuration::class);
     }
 
 }

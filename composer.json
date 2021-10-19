@@ -21,7 +21,8 @@
     "require": {
         "php": "^7.4|^8.0",
         "laravel/framework": "^8.0",
-        "astrotomic/laravel-translatable": "^11.9"
+        "astrotomic/laravel-translatable": "^11.9",
+        "barryvdh/laravel-ide-helper": "^2.10"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -31,7 +32,7 @@
                 "HexideDigital\\AdminConfigurations\\AdminConfigurationsServiceProvider"
             ],
             "aliases": {
-                "Configurations": "ConfigurationsFacade"
+                "Configuration": "HexideDigital\\AdminConfigurations\\Facade\\ConfigurationFacade"
             }
         }
     }
