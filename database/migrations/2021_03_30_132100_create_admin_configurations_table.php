@@ -45,6 +45,7 @@ class CreateAdminConfigurationsTable extends Migration
                 ->cascadeOnDelete()->cascadeOnUpdate();
         });
 
+        PermissionRelation::touch('admin_configurations')->addCustom()->all();
     }
 
     /**

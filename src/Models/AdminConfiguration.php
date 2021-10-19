@@ -6,14 +6,13 @@ use App\Models\Traits\PositionSortTrait;
 use App\Models\Traits\VisibleTrait;
 use App\Models\Traits\WithTranslationsTrait;
 use Astrotomic\Translatable\Translatable;
-use HexideDigital\FileUploader\Facades\FileUploader;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * App\Models\AdminConfiguration
  *
- * @mixin AdminConfigurationTranslation
+ * @mixin \HexideDigital\AdminConfigurations\Models\AdminConfigurationTranslation
  * @property int $id
  * @property string $key
  * @property string $type
@@ -26,8 +25,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $status
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\VariableTranslation|null $translation
- * @property-read Collection|\App\Models\VariableTranslation[] $translations
+ * @property-read \HexideDigital\AdminConfigurations\Models\AdminConfigurationTranslation|null $translation
+ * @property-read Collection|\HexideDigital\AdminConfigurations\Models\AdminConfigurationTranslation[] $translations
  * @property-read int|null $translations_count
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfiguration joinTranslations(?string $modelTable = null, ?string $translationsTable = null, ?string $modelTableKey = null, ?string $translationsTableKey = null)
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfiguration listsTranslations(string $translationField)
@@ -79,5 +78,97 @@ class AdminConfiguration extends Model
         'value',
         'status',
     ];
+
+
+    public const type_TITLE = 'title'; // short text /input - type=text
+    public const type_TEXT  = 'text';  // long text /textarea
+    public const type_IMAGE = 'image'; // image /input - file select
+
+    public const types = [
+        self::type_TITLE,
+        self::type_TEXT,
+        self::type_IMAGE,
+    ];
+
+    public static function getTypes(): array
+    {
+        return self::types;
+    }
+
+    public static function item(string $type, string $key, string $name, ?bool $translatable = null, $value = null): array
+    {
+        $item = [
+            'key' => $key,
+            'type' => $type,
+            'name' => $name,
+        ];
+
+        if (!empty($translatable)) {
+            $item['translatable'] = true;
+            if(is_array($value)) {
+                foreach (config('app.locales') as $locale) {
+                    $item[$locale] = ['content' => $value[$locale] ?? ''];
+                }
+            }else{
+                foreach (config('app.locales') as $locale){
+                    $item[$locale] = ['content' => $value??''];
+                }
+            }
+        }else if(!empty($value)){
+            $item['value'] = $value;
+        }
+
+        return $item;
+    }
+
+    public static function textItem(string $key, string $name, ?bool $translatable = null, $value = null): array
+    {
+        return self::item(self::type_TEXT, $key, $name, $translatable, $value);
+    }
+    public static function titleItem(string $key, string $name, ?bool $translatable = null, $value = null): array
+    {
+        return self::item(self::type_TITLE, $key, $name, $translatable, $value);
+    }
+    public static function imageItem(string $key, string $name, ?bool $translatable = null, $value = null): array
+    {
+        return self::item(self::type_IMAGE, $key, $name, $translatable, $value);
+    }
+
+
+    /**
+     * @param string|array $name
+     * @return array
+     */
+    public static function var_groups($name = []): array
+    {
+        if (!is_array($name)) {
+            $name = array($name);
+        }
+
+        $data = AdminConfiguration::visible()
+            ->whereIn('group', $name)
+            ->orderBy('in_group_position')
+            ->get();
+
+        return self::makeVariablesMap($data);
+    }
+
+    public static function makeVariablesMap(Collection $array): array
+    {
+        $data = [];
+        /** @var AdminConfiguration $admin_configuration */
+        foreach ($array as $admin_configuration) {
+            $value = $admin_configuration->translatable
+                ? ($admin_configuration->type === self::type_IMAGE
+                    ? asset($admin_configuration->translate(app()->getLocale())->content??'')
+                    : $admin_configuration->translate(app()->getLocale())->content ?? ''
+                )
+                : $admin_configuration->value ?? '';
+
+            $data[$admin_configuration->group][$admin_configuration->key][] = $value;
+        }
+        return $data;
+    }
+
 
 }

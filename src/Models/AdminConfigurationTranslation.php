@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * @property int $id
  * @property string $locale
- * @property int $variable_id
+ * @property int $admin_configuration_id
  * @property string|null $content
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfigurationTranslation newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfigurationTranslation newQuery()
