@@ -1,0 +1,38 @@
+{
+    "name": "hexide-digital/admin-configurations",
+    "description": "admin setting for laravel projects",
+    "license": "MIT",
+    "type": "library",
+    "version": "0.0.1",
+    "authors": [
+        {
+            "name": "Oleksandr-Moik",
+            "email": "sashamoik2016@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "HexideDigital\\AdminConfigurations\\": "src/"
+        },
+        "files": [
+            "./src/Functions/helpers.php"
+        ]
+    },
+    "require": {
+        "php": "^7.4|^8.0",
+        "laravel/framework": "^8.0",
+        "astrotomic/laravel-translatable": "^11.9"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "HexideDigital\\AdminConfigurations\\AdminConfigurationsServiceProvider"
+            ],
+            "aliases": {
+                "Configurations": "ConfigurationsFacade"
+            }
+        }
+    }
+}
