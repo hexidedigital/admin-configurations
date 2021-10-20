@@ -2,9 +2,9 @@
 
 namespace HexideDigital\AdminConfigurations\Models;
 
-use HexideDigital\HexideAdmin\Traits\Models\PositionSortTrait;
-use HexideDigital\HexideAdmin\Traits\Models\VisibleTrait;
-use HexideDigital\HexideAdmin\Traits\Models\WithTranslationsTrait;
+use HexideDigital\HexideAdmin\Models\Traits\PositionSortTrait;
+use HexideDigital\HexideAdmin\Models\Traits\VisibleTrait;
+use HexideDigital\HexideAdmin\Models\Traits\WithTranslationsTrait;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -160,7 +160,7 @@ class AdminConfiguration extends Model
         foreach ($array as $admin_configuration) {
             $value = $admin_configuration->translatable
                 ? ($admin_configuration->type === self::type_IMAGE
-                    ? asset($admin_configuration->translate(app()->getLocale())->content??'')
+                    ? self::path($admin_configuration->translate(app()->getLocale())->content??'')
                     : $admin_configuration->translate(app()->getLocale())->content ?? ''
                 )
                 : $admin_configuration->value ?? '';
@@ -170,5 +170,10 @@ class AdminConfiguration extends Model
         return $data;
     }
 
+    private static function path($path): string
+    {
+        $path = str_replace('/storage', '', $path);
+        return asset('/storage'.$path);
+    }
 
 }
