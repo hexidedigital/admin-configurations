@@ -7,9 +7,9 @@ use HexideDigital\HexideAdmin\Contracts\WithTypesContract;
 use HexideDigital\HexideAdmin\Models\Traits\PositionSortTrait;
 use HexideDigital\HexideAdmin\Models\Traits\VisibleTrait;
 use HexideDigital\HexideAdmin\Models\Traits\WithTranslationsTrait;
-use Astrotomic\Translatable\Translatable;
 use HexideDigital\HexideAdmin\Models\Traits\WithTypes;
 use Illuminate\Database\Eloquent\Builder;
+use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -95,7 +95,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     ];
 
     public const type_TITLE = 'title'; // short text /input - type=text
-    public const type_TEXT = 'text';  // long text /textarea
+    public const type_TEXT  = 'text';  // long text /textarea
     public const type_IMAGE = 'image'; // image /input - file select
 
     /**
@@ -105,7 +105,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     {
         return $this->translatable
             ? ($this->type === self::type_IMAGE
-                ? asset($this->translate(app()->getLocale())->content ?? '')
+                ? self::path($this->translate(app()->getLocale())->content ?? '')
                 : $this->translate(app()->getLocale())->content ?? ''
             )
             : $this->value ?? '';
@@ -151,20 +151,26 @@ class AdminConfiguration extends Model implements WithTypesContract
 
         if (!empty($translatable)) {
             $item['translatable'] = true;
-            if (is_array($value)) {
-                foreach (config('translatable.locales') as $locale) {
+            if(is_array($value)) {
+                foreach (config('app.locales') as $locale) {
                     $item[$locale] = ['content' => $value[$locale] ?? ''];
                 }
-            } else {
-                foreach (config('translatable.locales') as $locale) {
-                    $item[$locale] = ['content' => $value ?? ''];
+            }else{
+                foreach (config('app.locales') as $locale){
+                    $item[$locale] = ['content' => $value??''];
                 }
             }
-        } else if (!empty($value)) {
+        }else if(!empty($value)){
             $item['value'] = $value;
         }
 
         return $item;
+    }
+
+    private static function path($path): string
+    {
+        $path = str_replace('/storage', '', $path);
+        return asset('/storage'.$path);
     }
 
     public static function __callStatic($method, $parameters)
