@@ -72,10 +72,16 @@ class AdminConfiguration extends Model implements WithTypesContract
     use Translatable, WithTranslationsTrait;
     use VisibleTrait, PositionSortTrait, WithTypes;
 
-    protected array $translatedAttributes = [
+    /**
+     * @var string[]
+     */
+    protected $translatedAttributes = [
         'content'
     ];
 
+    /**
+     * @var string[]
+     */
     protected $fillable = [
         'key',
         'type',
@@ -88,7 +94,10 @@ class AdminConfiguration extends Model implements WithTypesContract
         'status',
     ];
 
-    protected static array $types = [
+    /**
+     * @var string[]
+     */
+    protected static $types = [
         self::type_TITLE => self::type_TITLE,
         self::type_TEXT => self::type_TEXT,
         self::type_IMAGE => self::type_IMAGE,
