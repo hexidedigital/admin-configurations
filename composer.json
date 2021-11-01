@@ -3,7 +3,7 @@
     "description": "admin setting for laravel projects",
     "license": "MIT",
     "type": "library",
-    "version": "0.0.1",
+    "version": "0.0.4",
     "authors": [
         {
             "name": "Oleksandr-Moik",
