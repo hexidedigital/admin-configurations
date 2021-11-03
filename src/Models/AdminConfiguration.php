@@ -37,35 +37,35 @@ use Illuminate\Database\Eloquent\Model;
  * @property-read \HexideDigital\AdminConfigurations\Models\AdminConfigurationTranslation|null $translation
  * @property-read Collection|\HexideDigital\AdminConfigurations\Models\AdminConfigurationTranslation[] $translations
  * @property-read int|null $translations_count
- * @method static Builder|self joinTranslations(?string $modelTable = null, ?string $translationsTable = null, ?string $modelTableKey = null, ?string $translationsTableKey = null)
- * @method static Builder|self listsTranslations(string $translationField)
- * @method static Builder|self newModelQuery()
- * @method static Builder|self newQuery()
- * @method static Builder|self notTranslatedIn(?string $locale = null)
- * @method static Builder|self orWhereTranslation(string $translationField, $value, ?string $locale = null)
- * @method static Builder|self orWhereTranslationLike(string $translationField, $value, ?string $locale = null)
- * @method static Builder|self orderByTranslation(string $translationField, string $sortMethod = 'asc')
- * @method static Builder|self query()
- * @method static Builder|self sorted(string $direction = 'ASC', string $field = 'position')
- * @method static Builder|self translated()
- * @method static Builder|self translatedIn(?string $locale = null)
- * @method static Builder|self visible()
- * @method static Builder|self whereCreatedAt($value)
- * @method static Builder|self whereDescription($value)
- * @method static Builder|self whereGroup($value)
- * @method static Builder|self whereId($value)
- * @method static Builder|self whereInGroupPosition($value)
- * @method static Builder|self whereKey($value)
- * @method static Builder|self whereName($value)
- * @method static Builder|self whereStatus($value)
- * @method static Builder|self whereTranslatable($value)
- * @method static Builder|self whereTranslation(string $translationField, $value, ?string $locale = null, string $method = 'whereHas', string $operator = '=')
- * @method static Builder|self whereTranslationLike(string $translationField, $value, ?string $locale = null)
- * @method static Builder|self whereType($value)
- * @method static Builder|self whereUpdatedAt($value)
- * @method static Builder|self whereValue($value)
- * @method static Builder|self withTranslation()
- * @method static Builder|self withTranslations()
+ * @method static Builder|static joinTranslations(?string $modelTable = null, ?string $translationsTable = null, ?string $modelTableKey = null, ?string $translationsTableKey = null)
+ * @method static Builder|static listsTranslations(string $translationField)
+ * @method static Builder|static newModelQuery()
+ * @method static Builder|static newQuery()
+ * @method static Builder|static notTranslatedIn(?string $locale = null)
+ * @method static Builder|static orWhereTranslation(string $translationField, $value, ?string $locale = null)
+ * @method static Builder|static orWhereTranslationLike(string $translationField, $value, ?string $locale = null)
+ * @method static Builder|static orderByTranslation(string $translationField, string $sortMethod = 'asc')
+ * @method static Builder|static query()
+ * @method static Builder|static sorted(string $direction = 'ASC', string $field = 'position')
+ * @method static Builder|static translated()
+ * @method static Builder|static translatedIn(?string $locale = null)
+ * @method static Builder|static visible()
+ * @method static Builder|static whereCreatedAt($value)
+ * @method static Builder|static whereDescription($value)
+ * @method static Builder|static whereGroup($value)
+ * @method static Builder|static whereId($value)
+ * @method static Builder|static whereInGroupPosition($value)
+ * @method static Builder|static whereKey($value)
+ * @method static Builder|static whereName($value)
+ * @method static Builder|static whereStatus($value)
+ * @method static Builder|static whereTranslatable($value)
+ * @method static Builder|static whereTranslation(string $translationField, $value, ?string $locale = null, string $method = 'whereHas', string $operator = '=')
+ * @method static Builder|static whereTranslationLike(string $translationField, $value, ?string $locale = null)
+ * @method static Builder|static whereType($value)
+ * @method static Builder|static whereUpdatedAt($value)
+ * @method static Builder|static whereValue($value)
+ * @method static Builder|static withTranslation()
+ * @method static Builder|static withTranslations()
  */
 class AdminConfiguration extends Model implements WithTypesContract
 {
@@ -113,9 +113,9 @@ class AdminConfiguration extends Model implements WithTypesContract
     public function getValue()
     {
         return $this->translatable
-            ? ($this->type === self::type_IMAGE
-                ? self::path($this->translate(app()->getLocale())->content ?? '')
-                : $this->translate(app()->getLocale())->content ?? ''
+            ? ($this->type === static::type_IMAGE
+                ? static::path($this->content ?? '')
+                : $this->content ?? ''
             )
             : $this->value ?? '';
     }
@@ -130,12 +130,17 @@ class AdminConfiguration extends Model implements WithTypesContract
             $name = array($name);
         }
 
-        $data = AdminConfiguration::joinTranslations()->visible()
+        $data = AdminConfiguration::visible()
+            ->joinTranslations()
+            ->select([
+                'admin_configurations.*',
+                'admin_configuration_translations.content as content',
+            ])
             ->whereIn('group', $name)
             ->orderBy('in_group_position')
             ->get();
 
-        return self::makeVariablesMap($data);
+        return static::makeVariablesMap($data);
     }
 
     public static function makeVariablesMap(Collection $array): array
@@ -176,25 +181,29 @@ class AdminConfiguration extends Model implements WithTypesContract
         return $item;
     }
 
-    private static function path($path): string
+    protected static function path($path): string
     {
         $path = str_replace('/storage', '', $path);
         return asset('/storage'.$path);
     }
 
+    protected static function createItem($method, $parameters){
+        $type = strtolower(str_replace('item', '', $method));
+        if(in_array($type, static::getTypesKeys())){
+            return static::item(
+                $type,
+                Arr::get($parameters, 0),
+                Arr::get($parameters, 1),
+                Arr::get($parameters, 2),
+                Arr::get($parameters, 3)
+            );
+        }
+    }
+
     public static function __callStatic($method, $parameters)
     {
         if(\Str::startsWith($method, 'item')){
-            $type = strtolower(str_replace('item', '', $method));
-            if(in_array($type, self::getTypesKeys())){
-                return self::item(
-                    $type,
-                    Arr::get($parameters, 0),
-                    Arr::get($parameters, 1),
-                    Arr::get($parameters, 2),
-                    Arr::get($parameters, 3)
-                );
-            }
+            static::createItem($method, $parameters);
         }
 
         return parent::__callStatic($method, $parameters);
