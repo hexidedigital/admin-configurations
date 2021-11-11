@@ -1,17 +1,18 @@
 <?php
 
-use HexideDigital\AdminConfigurations\Models\AdminConfiguration;
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+namespace Database\Seeders;
 
-class PopulateAdminConfigurationsTable extends Migration
+use HexideDigital\AdminConfigurations\Models\AdminConfiguration;
+use Illuminate\Database\Seeder;
+
+class AdminConfigurationExampleSeeder extends Seeder
 {
     /**
-     * Run the migrations.
+     * Run the database seeds.
      *
      * @return void
      */
-    public function up()
+    public function run()
     {
         $faker = \Faker\Factory::create();
 
@@ -76,17 +77,5 @@ class PopulateAdminConfigurationsTable extends Migration
                 AdminConfiguration::create($item);
             }
         }
-
-    }
-
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
-    {
-        DB::table('admin_configuration_translations')->delete();
-        DB::table('admin_configuration')->delete();
     }
 }

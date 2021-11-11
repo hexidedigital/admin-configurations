@@ -3,13 +3,13 @@
 namespace HexideDigital\AdminConfigurations\Models;
 
 use Arr;
+use Astrotomic\Translatable\Translatable;
 use HexideDigital\HexideAdmin\Contracts\WithTypesContract;
 use HexideDigital\HexideAdmin\Models\Traits\PositionSortTrait;
 use HexideDigital\HexideAdmin\Models\Traits\VisibleTrait;
 use HexideDigital\HexideAdmin\Models\Traits\WithTranslationsTrait;
 use HexideDigital\HexideAdmin\Models\Traits\WithTypes;
 use Illuminate\Database\Eloquent\Builder;
-use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
@@ -104,7 +104,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     ];
 
     public const type_TITLE = 'title'; // short text /input - type=text
-    public const type_TEXT  = 'text';  // long text /textarea
+    public const type_TEXT = 'text';  // long text /textarea
     public const type_IMAGE = 'image'; // image /input - file select
 
     /**
@@ -165,16 +165,16 @@ class AdminConfiguration extends Model implements WithTypesContract
 
         if (!empty($translatable)) {
             $item['translatable'] = true;
-            if(is_array($value)) {
+            if (is_array($value)) {
                 foreach (config('app.locales') as $locale) {
                     $item[$locale] = ['content' => $value[$locale] ?? ''];
                 }
-            }else{
-                foreach (config('app.locales') as $locale){
-                    $item[$locale] = ['content' => $value??''];
+            } else {
+                foreach (config('app.locales') as $locale) {
+                    $item[$locale] = ['content' => $value ?? ''];
                 }
             }
-        }else if(!empty($value)){
+        } else if (!empty($value)) {
             $item['value'] = $value;
         }
 
@@ -184,12 +184,13 @@ class AdminConfiguration extends Model implements WithTypesContract
     protected static function path($path): string
     {
         $path = str_replace('/storage', '', $path);
-        return asset('/storage'.$path);
+        return asset('/storage' . $path);
     }
 
-    protected static function createItem($method, $parameters){
+    protected static function createItem($method, $parameters): ?array
+    {
         $type = strtolower(str_replace('item', '', $method));
-        if(in_array($type, static::getTypesKeys())){
+        if (in_array($type, static::getTypesKeys())) {
             return static::item(
                 $type,
                 Arr::get($parameters, 0),
@@ -198,12 +199,13 @@ class AdminConfiguration extends Model implements WithTypesContract
                 Arr::get($parameters, 3)
             );
         }
+        return null;
     }
 
     public static function __callStatic($method, $parameters)
     {
-        if(\Str::startsWith($method, 'item')){
-            static::createItem($method, $parameters);
+        if (\Str::startsWith($method, 'item')) {
+            return static::createItem($method, $parameters);
         }
 
         return parent::__callStatic($method, $parameters);

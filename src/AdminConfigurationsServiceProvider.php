@@ -16,11 +16,12 @@ class AdminConfigurationsServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../config/admin_configurations.php' => config_path('admin_configurations.php'),
-            __DIR__.'/../database/migrations/' => database_path('migrations')
+            __DIR__ . '/../config/admin_configurations.php' => config_path('admin_configurations.php'),
+            __DIR__ . '/../database/migrations/' => database_path('migrations'),
+            __DIR__ . '/../database/seeders/' => database_path('seeders'),
         ], 'admin-configurations-publishes');
 
-        if(config('admin_configurations.vendor_migrations', true)) {
+        if (config('admin_configurations.vendor_migrations', true)) {
             $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         }
     }
@@ -32,7 +33,7 @@ class AdminConfigurationsServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/admin_configurations.php', 'admin_configurations');
+        $this->mergeConfigFrom(__DIR__ . '/../config/admin_configurations.php', 'admin_configurations');
 
         $this->app->bind('admin_configuration', Configuration::class);
     }
