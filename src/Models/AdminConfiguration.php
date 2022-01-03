@@ -77,6 +77,8 @@ class AdminConfiguration extends Model implements WithTypesContract
     use PositionSortTrait;
     use WithTypes;
 
+    public $translationModel = AdminConfigurationTranslation::class;
+
     protected array $translatedAttributes = [
         'content'
     ];
