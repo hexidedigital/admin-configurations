@@ -80,7 +80,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     public $translationModel = AdminConfigurationTranslation::class;
 
     protected array $translatedAttributes = [
-        'content'
+        'content',
     ];
 
     protected $fillable = [
@@ -101,7 +101,7 @@ class AdminConfiguration extends Model implements WithTypesContract
 
     protected static array $types = [
         self::type_TITLE => self::type_TITLE,
-        self::type_TEXT => self::type_TEXT,
+        self::type_TEXT  => self::type_TEXT,
         self::type_IMAGE => self::type_IMAGE,
     ];
 
@@ -139,33 +139,35 @@ class AdminConfiguration extends Model implements WithTypesContract
 
     /**
      * @param string|array $name
+     *
      * @return array
      */
     public static function var_groups($name = []): array
     {
-        return static::makeVariablesMap(AdminConfiguration::visible()
-            ->joinTranslations()
-            ->select([
-                'admin_configurations.*',
-                'admin_configuration_translations.content as content',
-            ])
-            ->whereIn('group', array_wrap($name))
-            ->orderBy('in_group_position')
-            ->get()
-            ->keyBy('key')
-            ->groupBy('group'));
+        return static::makeVariablesMap(
+            AdminConfiguration::visible()
+                ->joinTranslations()
+                ->select([
+                    'admin_configurations.*',
+                    'admin_configuration_translations.content as content',
+                ])
+                ->whereIn('group', array_wrap($name))
+                ->orderBy('in_group_position')
+                ->get()
+                ->groupBy('group')
+        );
     }
 
-    public static function makeVariablesMap(Collection $array): array
+    public static function makeVariablesMap(Collection $collection): array
     {
         $data = [];
 
         /** @var AdminConfiguration $admin_configuration */
-        foreach ($array as $group => $admin_configurations) {
+        foreach ($collection as $group => $admin_configurations) {
             $values = [];
 
-            foreach ($admin_configurations as $key => $admin_configuration) {
-                $values[$key] = $admin_configuration->getValue();
+            foreach ($admin_configurations as $admin_configuration) {
+                $values[$admin_configuration->key][] = $admin_configuration->getValue();
             }
 
             $data[$group] = $values;
@@ -177,12 +179,12 @@ class AdminConfiguration extends Model implements WithTypesContract
     public static function item(string $type, string $key, string $name, ?bool $translatable = null, $value = null): array
     {
         $item = [
-            'key' => $key,
+            'key'  => $key,
             'type' => $type,
             'name' => $name,
         ];
 
-        if (!empty($translatable)) {
+        if ($translatable) {
             $item['translatable'] = true;
 
             if (is_array($value)) {
@@ -196,9 +198,7 @@ class AdminConfiguration extends Model implements WithTypesContract
             }
 
         } else if (!empty($value)) {
-
             $item['value'] = $value;
-
         }
 
         return $item;
@@ -223,6 +223,7 @@ class AdminConfiguration extends Model implements WithTypesContract
                 Arr::get($parameters, 3)
             );
         }
+
         return null;
     }
 
