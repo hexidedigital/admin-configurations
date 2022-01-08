@@ -30,7 +30,8 @@ use Illuminate\Support\Str;
  * @property int $translatable
  * @property string|null $group
  * @property int $in_group_position
- * @property string|null $value
+ * @property string|null $content
+ * @property string|array|null $value
  * @property int $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -134,7 +135,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     protected $casts = [
         'status'       => 'bool',
         'translatable' => 'bool',
-        'value'        => 'json',
+        'value'        => 'array',
     ];
 
     protected static function boot()
@@ -158,7 +159,6 @@ class AdminConfiguration extends Model implements WithTypesContract
     {
         $this->attributes['key'] = Str::slug($value, '_');
     }
-
 
     public function setValueAttribute($value)
     {
@@ -194,8 +194,9 @@ class AdminConfiguration extends Model implements WithTypesContract
 
     public function getValueAttribute($value)
     {
-        if ($this->multilingual) {
-            return $this->text;
+        if ($this->translatable) {
+            /*todo also can be returned json*/
+            return $this->translate()->text;
         }
 
         if ($this->type == self::MULTI_SELECT) {
@@ -249,7 +250,6 @@ class AdminConfiguration extends Model implements WithTypesContract
      * @param string|array $group
      *
      * @return array
-     * @deprecated Will be removed. Recommend to use view composers.
      */
     public static function varGroups($group = []): array
     {
@@ -271,7 +271,7 @@ class AdminConfiguration extends Model implements WithTypesContract
             $values = [];
 
             foreach ($admin_configurations as $admin_configuration) {
-                $values[$admin_configuration->key] = $admin_configuration->getValue();
+                $values[$admin_configuration->key] = $admin_configuration->value;
             }
 
             $data[$group] = $values;
@@ -279,16 +279,6 @@ class AdminConfiguration extends Model implements WithTypesContract
 
         return $data;
 
-    }
-
-    public function getValue(): string
-    {
-        return $this->translatable
-            ? ($this->type === static::IMAGE
-                ? static::path($this->content ?? '')
-                : $this->content ?? ''
-            )
-            : $this->value ?? '';
     }
 
     public static function getValueByKey(string $key)

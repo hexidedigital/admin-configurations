@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $locale
  * @property int $admin_configuration_id
- * @property string|null $content
+ * @property string|null $text
+ * @property string|null $json
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfigurationTranslation newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfigurationTranslation newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|AdminConfigurationTranslation query()
@@ -23,7 +24,7 @@ class AdminConfigurationTranslation extends Model
 
     protected $fillable = [
         'locale', 'admin_configuration_id',
-        'content',
+        'text',
         'json',
     ];
 
