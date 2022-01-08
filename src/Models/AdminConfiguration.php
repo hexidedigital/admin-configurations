@@ -4,7 +4,6 @@ namespace HexideDigital\AdminConfigurations\Models;
 
 use Astrotomic\Translatable\Translatable;
 use HexideDigital\HexideAdmin\Contracts\WithTypesContract;
-use HexideDigital\HexideAdmin\Models\Traits\PositionSortTrait;
 use HexideDigital\HexideAdmin\Models\Traits\VisibleTrait;
 use HexideDigital\HexideAdmin\Models\Traits\WithTranslationsTrait;
 use HexideDigital\HexideAdmin\Models\Traits\WithTypes;
@@ -47,10 +46,13 @@ use Illuminate\Support\Str;
  * @method static Builder|static orWhereTranslationLike(string $translationField, $value, ?string $locale = null)
  * @method static Builder|static orderByTranslation(string $translationField, string $sortMethod = 'asc')
  * @method static Builder|static query()
- * @method static Builder|static sorted(string $direction = 'ASC', string $field = 'position')
+ * @method static Builder|static sorted(string $direction = 'ASC')
+ * @method static Builder|static sortedAsc()
+ * @method static Builder|static sortedDesc()
  * @method static Builder|static translated()
  * @method static Builder|static translatedIn(?string $locale = null)
  * @method static Builder|static visible()
+ * @method static Builder|static forGroup($group)
  * @method static Builder|static whereCreatedAt($value)
  * @method static Builder|static whereDescription($value)
  * @method static Builder|static whereGroup($value)
@@ -72,40 +74,36 @@ class AdminConfiguration extends Model implements WithTypesContract
 {
     use Translatable, WithTranslationsTrait;
     use VisibleTrait;
-    use PositionSortTrait;
     use WithTypes;
 
     public const DefaultType = self::TEXT;
 
-    /** simple one-line text @var string */
+    /** one-line text @var string */
     public const TEXT = 'text';
     /** multiline text @var string */
     public const TEXTAREA = 'textarea';
     /** multiline text with editor @var string */
     public const EDITOR = 'editor';
-    /** - @var string */
+    /** day of week @var string */
     public const WEEKDAY = 'weekday';
-    /** - @var string */
+    /** time @var string */
     public const TIME = 'time';
-    /** checkbox type @var string */
+    /** date @var string */
+    public const DATE = 'date';
+    /** logic type @var string */
     public const BOOLEAN = 'boolean';
     /** list of items with one selectable @var string */
     public const SELECT = 'select';
     /** list of items with more selectable @var string */
     public const MULTI_SELECT = 'multi_select';
-    /** - @var string */
+    /** image path @var string */
     public const IMAGE = 'image';
-    /** - @var string */
+    /** file path @var string */
     public const FILE = 'file';
-    /** - @var string */
+    /** array of range @var string */
     public const RANGE = 'range';
-    /** - @var string */
+    /** banner with title, text, image and button @var string */
     public const IMG_BUTTON = 'img_button';
-    /** - @var string */
-    public const DATE = 'date';
-
-    /** - @var string */
-    public const COMMISSION_TYPE = 'commission_type';
 
     /** @var array<string> */
     protected static array $types = [
@@ -114,6 +112,7 @@ class AdminConfiguration extends Model implements WithTypesContract
         self::EDITOR,
         self::WEEKDAY,
         self::TIME,
+        self::DATE,
         self::BOOLEAN,
         self::SELECT,
         self::MULTI_SELECT,
@@ -121,29 +120,15 @@ class AdminConfiguration extends Model implements WithTypesContract
         self::FILE,
         self::RANGE,
         self::IMG_BUTTON,
-        self::DATE,
-        self::COMMISSION_TYPE,
     ];
 
 
     public $translationModel = AdminConfigurationTranslation::class;
 
-    protected array $translatedAttributes = [
-        'text',
-        'json',
-    ];
+    protected array $translatedAttributes = ['text', 'json',];
 
     protected $fillable = [
-        'key',
-        'type',
-        'name',
-        'description',
-        'translatable',
-        'content',
-        'value',
-        'status',
-        'group',
-        'in_group_position',
+        'key', 'type', 'name', 'description', 'translatable', 'content', 'value', 'status', 'group', 'in_group_position',
     ];
 
     protected $casts = [
@@ -163,11 +148,137 @@ class AdminConfiguration extends Model implements WithTypesContract
         static::updating(function (AdminConfiguration $adminConfiguration) {
             $adminConfiguration->key = $adminConfiguration->attributes['key'];
         });
+
+        static::deleted(function (AdminConfiguration $adminConfiguration) {
+
+        });
     }
 
-    public function setKeyAttribute($value)
+    public function setKeyAttribute(string $value)
     {
-        $this->attributes['key'] = Str::replace('-', '_', Str::slug($value));
+        $this->attributes['key'] = Str::slug($value, '_');
+    }
+
+
+    public function setValueAttribute($value)
+    {
+        switch ($this->type) {
+            case self::MULTI_SELECT:
+                $value = json_encode($value ?: []);
+
+                break;
+
+            case self::RANGE:
+                $value = array_wrap($value);
+
+                $value = json_encode([
+                    'from' => array_get($value, 'from'),
+                    'to'   => array_get($value, 'to'),
+                ]);
+
+                break;
+
+            case self::IMG_BUTTON:
+                $value = array_wrap($value);
+
+                $value = json_encode([
+                    'image' => array_get($value, 'image'),
+                    'url'   => array_get($value, 'url'),
+                ]);
+
+                break;
+        };
+
+        $this->attributes['value'] = $value;
+    }
+
+    public function getValueAttribute($value)
+    {
+        if ($this->multilingual) {
+            return $this->text;
+        }
+
+        if ($this->type == self::MULTI_SELECT) {
+            if (empty($value)) {
+                return [];
+            }
+
+            $values = [];
+
+            foreach (json_decode($value, true) as $value) {
+                $values[$value] = $value;
+            }
+
+            return $values;
+        }
+
+        if (in_array($this->type, [self::RANGE, self::IMG_BUTTON])) {
+            return json_decode($value, true);
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param Builder $builder
+     * @param string|array<string> $groups
+     *
+     * @return Builder
+     */
+    public function scopeForGroup(Builder $builder, $groups): Builder
+    {
+        return $builder->whereIn('group', array_wrap($groups));
+    }
+
+    public function scopeSorted(Builder $builder, string $direction = 'ASC'): Builder
+    {
+        return $builder->orderBy('in_group_position', $direction);
+    }
+
+    public function scopeSortedAsc(Builder $builder): Builder
+    {
+        return $builder->orderBy('in_group_position', 'ASC');
+    }
+
+    public function scopeSortedDesc(Builder $builder): Builder
+    {
+        return $builder->orderBy('in_group_position', 'DESC');
+    }
+
+    /**
+     * @param string|array $group
+     *
+     * @return array
+     * @deprecated Will be removed. Recommend to use view composers.
+     */
+    public static function varGroups($group = []): array
+    {
+        $collection = AdminConfiguration::visible()
+            ->joinTranslations()
+            ->select([
+                'admin_configurations.*',
+                'admin_configuration_translations.text as text',
+            ])
+            ->forGroup($group)
+            ->sorted()
+            ->get()
+            ->groupBy('group');
+
+        $data = [];
+
+        /** @var AdminConfiguration $admin_configuration */
+        foreach ($collection as $group => $admin_configurations) {
+            $values = [];
+
+            foreach ($admin_configurations as $admin_configuration) {
+                $values[$admin_configuration->key] = $admin_configuration->getValue();
+            }
+
+            $data[$group] = $values;
+        }
+
+        return $data;
+
     }
 
     public function getValue(): string
@@ -180,71 +291,31 @@ class AdminConfiguration extends Model implements WithTypesContract
             : $this->value ?? '';
     }
 
-    /**
-     * @param string|array $name
-     *
-     * @return array
-     */
-    public static function var_groups($name = []): array
+    public static function getValueByKey(string $key)
     {
-        return static::makeVariablesMap(
-            AdminConfiguration::visible()
-                ->joinTranslations()
-                ->select([
-                    'admin_configurations.*',
-                    'admin_configuration_translations.text as text',
-                ])
-                ->whereIn('group', array_wrap($name))
-                ->orderBy('in_group_position')
-                ->get()
-                ->groupBy('group')
-        );
-    }
+        $configuration = self::where('key', $key)->first();
 
-    public static function makeVariablesMap(Collection $collection): array
-    {
-        $data = [];
+        if (!$configuration) {
+            $configValue = config('variables.' . $key);
 
-        /** @var AdminConfiguration $admin_configuration */
-        foreach ($collection as $group => $admin_configurations) {
-            $values = [];
-
-            foreach ($admin_configurations as $admin_configuration) {
-                $values[$admin_configuration->key][] = $admin_configuration->getValue();
+            if (!$configValue) {
+                return null;
             }
 
-            $data[$group] = $values;
+            $configValue['key'] = $key;
+
+            $data = Arr::only($configValue, ['key', 'name', 'type']);
+
+            $data = isset($configValue['localization'])
+                ? array_merge($data, ['multilingual' => true], $configValue['localization'])
+                : array_merge($data, ['value' => $configValue['plain_value']]);
+
+            $configuration = self::create($data);
+
+            return $configuration->value;
         }
 
-        return $data;
-    }
-
-    public static function item(string $type, string $key, string $name, ?bool $translatable = null, $value = null): array
-    {
-        $item = [
-            'key'  => $key,
-            'type' => $type,
-            'name' => $name,
-        ];
-
-        if ($translatable) {
-            $item['translatable'] = true;
-
-            if (is_array($value)) {
-                foreach (config('app.locales') as $locale) {
-                    $item[$locale] = ['text' => $value[$locale] ?? ''];
-                }
-            } else {
-                foreach (config('app.locales') as $locale) {
-                    $item[$locale] = ['text' => $value ?? ''];
-                }
-            }
-
-        } else if (!empty($value)) {
-            $item['content'] = $value;
-        }
-
-        return $item;
+        return $configuration->value;
     }
 
     protected static function path($path): string
@@ -254,28 +325,4 @@ class AdminConfiguration extends Model implements WithTypesContract
         return asset('/storage' . $path);
     }
 
-    protected static function createItem($method, $parameters): ?array
-    {
-        $type = strtolower(str_replace('item', '', $method));
-        if (in_array($type, static::getTypesKeys())) {
-            return static::item(
-                $type,
-                Arr::get($parameters, 0),
-                Arr::get($parameters, 1),
-                Arr::get($parameters, 2),
-                Arr::get($parameters, 3)
-            );
-        }
-
-        return null;
-    }
-
-    public static function __callStatic($method, $parameters)
-    {
-        if (Str::startsWith($method, 'item')) {
-            return static::createItem($method, $parameters);
-        }
-
-        return parent::__callStatic($method, $parameters);
-    }
 }
