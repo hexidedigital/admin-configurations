@@ -4,10 +4,7 @@ namespace HexideDigital\AdminConfigurations\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-
 /**
- * HexideDigital\AdminConfigurations\Models\AdminConfigurationTranslation
- *
  * @property int $id
  * @property string $locale
  * @property int $admin_configuration_id
@@ -27,6 +24,10 @@ class AdminConfigurationTranslation extends Model
     protected $fillable = [
         'locale', 'admin_configuration_id',
         'content',
+        'json',
     ];
 
+    public $casts = [
+        'json' => 'array'
+    ];
 }

@@ -15,34 +15,28 @@ class CreateAdminConfigurationsTable extends Migration
     {
         Schema::create('admin_configurations', function (Blueprint $table) {
             $table->id();
-
-            $table->string('key');
+            $table->string('key')->unique();
             $table->string('type');
-
             $table->string('name')->nullable();
             $table->string('description')->nullable();
             $table->boolean('translatable')->default(0);
-
+            $table->text('content')->nullable();
+            $table->json('value')->nullable();
+            $table->boolean('status')->default(1);
             $table->string('group')->nullable();
             $table->integer('in_group_position')->default(1);
-
-            $table->text('value')->nullable();
-            $table->boolean('status')->default(1);
-
             $table->timestamps();
         });
 
         Schema::create('admin_configuration_translations', function (Blueprint $table) {
             $table->id();
             $table->string('locale');
-            $table->unsignedBigInteger('admin_configuration_id');
+            $table->foreignId('admin_configuration_id')->constrained()->cascadeOnDelete()->cascadeOnUpdate();
 
-            $table->text('content')->nullable();
+            $table->text('text')->nullable();
+            $table->json('json')->nullable();
 
             $table->unique(['admin_configuration_id', 'locale'], 'a_conf_transl_admin_conf_locale');
-
-            $table->foreign('admin_configuration_id')->references('id')->on('admin_configurations')
-                ->cascadeOnDelete()->cascadeOnUpdate();
         });
 
         PermissionRelation::touch('admin_configurations')->addCustomSet()->addResourceSet();

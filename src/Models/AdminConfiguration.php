@@ -16,8 +16,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * App\Models\AdminConfiguration
- *
  * @method static array itemText(string $key, string $name, ?bool $translatable = null, $value = null)
  * @method static array itemTitle(string $key, string $name, ?bool $translatable = null, $value = null)
  * @method static array itemImage(string $key, string $name, ?bool $translatable = null, $value = null)
@@ -77,10 +75,62 @@ class AdminConfiguration extends Model implements WithTypesContract
     use PositionSortTrait;
     use WithTypes;
 
+    public const DefaultType = self::TEXT;
+
+    /** simple one-line text @var string */
+    public const TEXT = 'text';
+    /** multiline text @var string */
+    public const TEXTAREA = 'textarea';
+    /** multiline text with editor @var string */
+    public const EDITOR = 'editor';
+    /** - @var string */
+    public const WEEKDAY = 'weekday';
+    /** - @var string */
+    public const TIME = 'time';
+    /** checkbox type @var string */
+    public const BOOLEAN = 'boolean';
+    /** list of items with one selectable @var string */
+    public const SELECT = 'select';
+    /** list of items with more selectable @var string */
+    public const MULTI_SELECT = 'multi_select';
+    /** - @var string */
+    public const IMAGE = 'image';
+    /** - @var string */
+    public const FILE = 'file';
+    /** - @var string */
+    public const RANGE = 'range';
+    /** - @var string */
+    public const IMG_BUTTON = 'img_button';
+    /** - @var string */
+    public const DATE = 'date';
+
+    /** - @var string */
+    public const COMMISSION_TYPE = 'commission_type';
+
+    /** @var array<string> */
+    protected static array $types = [
+        self::TEXT,
+        self::TEXTAREA,
+        self::EDITOR,
+        self::WEEKDAY,
+        self::TIME,
+        self::BOOLEAN,
+        self::SELECT,
+        self::MULTI_SELECT,
+        self::IMAGE,
+        self::FILE,
+        self::RANGE,
+        self::IMG_BUTTON,
+        self::DATE,
+        self::COMMISSION_TYPE,
+    ];
+
+
     public $translationModel = AdminConfigurationTranslation::class;
 
     protected array $translatedAttributes = [
-        'content',
+        'text',
+        'json',
     ];
 
     protected $fillable = [
@@ -89,25 +139,18 @@ class AdminConfiguration extends Model implements WithTypesContract
         'name',
         'description',
         'translatable',
-        'group',
-        'in_group_position',
+        'content',
         'value',
         'status',
+        'group',
+        'in_group_position',
     ];
 
     protected $casts = [
+        'status'       => 'bool',
         'translatable' => 'bool',
+        'value'        => 'json',
     ];
-
-    protected static array $types = [
-        self::type_TITLE => self::type_TITLE,
-        self::type_TEXT  => self::type_TEXT,
-        self::type_IMAGE => self::type_IMAGE,
-    ];
-
-    public const type_TITLE = 'title'; // short text /input - type=text
-    public const type_TEXT = 'text';  // long text /textarea
-    public const type_IMAGE = 'image'; // image /input - file select
 
     protected static function boot()
     {
@@ -130,7 +173,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     public function getValue(): string
     {
         return $this->translatable
-            ? ($this->type === static::type_IMAGE
+            ? ($this->type === static::IMAGE
                 ? static::path($this->content ?? '')
                 : $this->content ?? ''
             )
@@ -149,7 +192,7 @@ class AdminConfiguration extends Model implements WithTypesContract
                 ->joinTranslations()
                 ->select([
                     'admin_configurations.*',
-                    'admin_configuration_translations.content as content',
+                    'admin_configuration_translations.text as text',
                 ])
                 ->whereIn('group', array_wrap($name))
                 ->orderBy('in_group_position')
@@ -189,16 +232,16 @@ class AdminConfiguration extends Model implements WithTypesContract
 
             if (is_array($value)) {
                 foreach (config('app.locales') as $locale) {
-                    $item[$locale] = ['content' => $value[$locale] ?? ''];
+                    $item[$locale] = ['text' => $value[$locale] ?? ''];
                 }
             } else {
                 foreach (config('app.locales') as $locale) {
-                    $item[$locale] = ['content' => $value ?? ''];
+                    $item[$locale] = ['text' => $value ?? ''];
                 }
             }
 
         } else if (!empty($value)) {
-            $item['value'] = $value;
+            $item['content'] = $value;
         }
 
         return $item;
