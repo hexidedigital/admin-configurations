@@ -15,10 +15,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * @method static array itemText(string $key, string $name, ?bool $translatable = null, $value = null)
- * @method static array itemTitle(string $key, string $name, ?bool $translatable = null, $value = null)
- * @method static array itemImage(string $key, string $name, ?bool $translatable = null, $value = null)
- *
  * @mixin AdminConfigurationTranslation
  * @mixin \Eloquent
  *
@@ -123,6 +119,7 @@ class AdminConfiguration extends Model implements WithTypesContract
         self::IMG_BUTTON,
     ];
 
+    /* ------------------------ Model ------------------------ */
 
     public $translationModel = AdminConfigurationTranslation::class;
 
@@ -155,6 +152,8 @@ class AdminConfiguration extends Model implements WithTypesContract
         });
     }
 
+    /* ------------------------ attributes ------------------------ */
+
     public function setKeyAttribute(string $value)
     {
         $this->attributes['key'] = Str::slug($value, '_');
@@ -162,63 +161,77 @@ class AdminConfiguration extends Model implements WithTypesContract
 
     public function setValueAttribute($value)
     {
-        switch ($this->type) {
-            case self::MULTI_SELECT:
-                $value = json_encode($value ?: []);
+        $field = $this->storeKey();
 
-                break;
+        if (self::isSingleValueType($this->type)) {
 
-            case self::RANGE:
-                $value = array_wrap($value);
+            $value = $this->asJson($value);
 
-                $value = json_encode([
+        } else if (self::isArrayValueType($this->type)) {
+
+            if (empty($value)) {
+                $value = [];
+            }
+
+            $value = $this->asJson($value);
+
+        } else if (self::isObjectValueType($this->type)) {
+
+            $value = array_wrap($value);
+
+            if (self::isType(self::RANGE)) {
+
+                $value = $this->asJson([
                     'from' => array_get($value, 'from'),
                     'to'   => array_get($value, 'to'),
                 ]);
 
-                break;
+            } else if (self::isType(self::IMG_BUTTON)) {
 
-            case self::IMG_BUTTON:
-                $value = array_wrap($value);
-
-                $value = json_encode([
-                    'image' => array_get($value, 'image'),
-                    'url'   => array_get($value, 'url'),
+                $value = $this->asJson([
+                    'image'   => array_get($value, 'image'),
+                    'url'     => array_get($value, 'url'),
+                    'title'   => array_get($value, 'title'),
+                    'content' => array_get($value, 'content'),
                 ]);
 
-                break;
-        };
+            }
 
-        $this->attributes['value'] = $value;
+        }
+
+        $this->attributes[$field] = $value;
     }
 
     public function getValueAttribute($value)
     {
-        if ($this->translatable) {
-            /*todo also can be returned json*/
-            return $this->translate()->text;
+        $field = $this->storeKey();
+
+        $value = $this->translatable ? ($this->translate()->attributes[$field] ?? null) : $this->attributes[$field];
+
+        if (self::isTextValueType($this->type)) {
+            return $value;
         }
 
-        if ($this->type == self::MULTI_SELECT) {
+        if (self::isSingleValueType($this->type)) {
+            return $this->fromJson($value);
+        }
+
+        if (self::isArrayValueType($this->type)) {
             if (empty($value)) {
                 return [];
             }
 
-            $values = [];
-
-            foreach (json_decode($value, true) as $value) {
-                $values[$value] = $value;
-            }
-
-            return $values;
+            return $this->fromJson($value);
         }
 
-        if (in_array($this->type, [self::RANGE, self::IMG_BUTTON])) {
-            return json_decode($value, true);
+        if (self::isObjectValueType($this->type)) {
+            return $this->fromJson($value);
         }
 
         return $value;
     }
+
+    /* ------------------------ scopes ------------------------ */
 
     /**
      * @param Builder $builder
@@ -246,6 +259,8 @@ class AdminConfiguration extends Model implements WithTypesContract
         return $builder->orderBy('in_group_position', 'DESC');
     }
 
+    /* ------------------------ operations ------------------------ */
+
     /**
      * @param string|array $group
      *
@@ -267,52 +282,200 @@ class AdminConfiguration extends Model implements WithTypesContract
         $data = [];
 
         /** @var AdminConfiguration $admin_configuration */
-        foreach ($collection as $group => $admin_configurations) {
+        foreach ($collection as $groupName => $admin_configurations) {
             $values = [];
 
             foreach ($admin_configurations as $admin_configuration) {
                 $values[$admin_configuration->key] = $admin_configuration->value;
             }
 
-            $data[$group] = $values;
+            $data[$groupName] = $values;
         }
 
         return $data;
-
     }
 
     public static function getValueByKey(string $key)
     {
         $configuration = self::where('key', $key)->first();
 
-        if (!$configuration) {
-            $configValue = config('variables.' . $key);
-
-            if (!$configValue) {
-                return null;
-            }
-
-            $configValue['key'] = $key;
-
-            $data = Arr::only($configValue, ['key', 'name', 'type']);
-
-            $data = isset($configValue['localization'])
-                ? array_merge($data, ['multilingual' => true], $configValue['localization'])
-                : array_merge($data, ['value' => $configValue['plain_value']]);
-
-            $configuration = self::create($data);
-
+        if ($configuration) {
             return $configuration->value;
         }
+
+        $configValue = config('hexide-admin.variables.' . $key);
+
+        if (!$configValue) {
+            return null;
+        }
+
+        $configValue['key'] = $key;
+
+        $data = Arr::only($configValue, ['key', 'name', 'type']);
+
+        $data = isset($configValue['localization'])
+            ? array_merge($data, ['translatable' => true], $configValue['localization'])
+            : array_merge($data, ['value' => $configValue['plain_value']]);
+
+        $configuration = self::create($data);
 
         return $configuration->value;
     }
 
-    protected static function path($path): string
+    public function isType(string $type): bool
     {
-        $path = str_replace('/storage', '', $path);
+        return in_array($type, self::$types) && $this->type === $type;
+    }
 
-        return asset('/storage' . $path);
+    public function storeKey(): string
+    {
+        return self::getStoreKey($this->type, $this->translatable);
+    }
+
+    /* ------------------------ static ------------------------ */
+
+    public static function getStoreKey(string $type, ?bool $translatable): string
+    {
+        if (self::isTextValueType($type)) {
+            return $translatable ? 'text' : 'content';
+        }
+
+        return $translatable ? 'json' : 'value';
+    }
+
+    public static function isTextValueType(?string $type): bool
+    {
+        return in_array($type, [
+            self::TEXT,
+            self::TEXTAREA,
+            self::EDITOR,
+            self::TIME,
+            self::DATE,
+        ]);
+    }
+
+    public static function isSingleValueType(?string $type): bool
+    {
+        return in_array($type, [
+            self::SELECT,
+            self::WEEKDAY,
+            self::BOOLEAN,
+            self::IMAGE,
+            self::FILE,
+        ]);
+    }
+
+    public static function isObjectValueType(?string $type): bool
+    {
+        return in_array($type, [
+            self::RANGE,
+            self::IMG_BUTTON,
+        ]);
+    }
+
+    public static function isArrayValueType(?string $type): bool
+    {
+        return in_array($type, [
+            self::MULTI_SELECT,
+        ]);
+    }
+
+    public static function canStoreFiles(string $type): bool
+    {
+        return in_array($type, [
+            self::IMAGE,
+            self::FILE,
+            self::IMG_BUTTON,
+        ]);
+    }
+
+    public static function getRuleForType($type, $attribute): array
+    {
+        if (!in_array($type, AdminConfiguration::getTypes())) {
+            return [];
+        }
+
+        if (AdminConfiguration::isArrayValueType($type)) {
+            return [
+                $attribute       => 'nullable|array',
+                $attribute . '*' => 'required|string',
+            ];
+        }
+
+        if (AdminConfiguration::TEXT === $type) {
+            return [
+                $attribute => 'nullable|string|max:500',
+            ];
+        }
+
+        if (in_array($type, [AdminConfiguration::TEXTAREA, AdminConfiguration::EDITOR])) {
+            return [
+                $attribute => 'nullable|string|max:5000',
+            ];
+        }
+
+        if (AdminConfiguration::WEEKDAY === $type) {
+            return [
+                $attribute => 'required|string|max:20',
+            ];
+        }
+
+        if (AdminConfiguration::TIME === $type) {
+            return [
+                $attribute => 'nullable|string|max:10',
+            ];
+        }
+
+        if (AdminConfiguration::DATE === $type) {
+            return [
+                $attribute => 'nullable|date',
+            ];
+        }
+
+        if (AdminConfiguration::BOOLEAN === $type) {
+            return [
+                $attribute => 'boolean',
+            ];
+        }
+
+        if (AdminConfiguration::SELECT === $type) {
+            return [
+                $attribute => 'nullable|string',
+            ];
+        }
+
+        if (AdminConfiguration::IMAGE === $type) {
+            return [
+                $attribute . '.image'         => 'nullable|image',
+                $attribute . '.isRemoveImage' => 'nullable|boolean',
+            ];
+        }
+
+        if (AdminConfiguration::FILE === $type) {
+            return [
+                $attribute . '.file'          => 'nullable|file',
+                $attribute . '.isRemoveImage' => 'nullable|boolean',
+            ];
+        }
+
+        if (AdminConfiguration::IMG_BUTTON === $type) {
+            return [
+                $attribute . '.image'         => 'nullable|image',
+                $attribute . '.isRemoveImage' => 'nullable|boolean',
+                $attribute . '.url'           => 'nullable|string|max:250',
+                $attribute . '.title'         => 'nullable|string|max:100',
+                $attribute . '.content'       => 'nullable|string|max:5000',
+            ];
+        }
+
+        if (AdminConfiguration::RANGE === $type) {
+            return [
+                $attribute . '.from' => 'nullable|string',
+                $attribute . '.to'   => 'nullable|string',
+            ];
+        }
+
+        return [];
     }
 
 }

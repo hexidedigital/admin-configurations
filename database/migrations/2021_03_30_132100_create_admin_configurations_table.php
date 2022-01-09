@@ -15,7 +15,7 @@ class CreateAdminConfigurationsTable extends Migration
     {
         Schema::create('admin_configurations', function (Blueprint $table) {
             $table->id();
-            $table->string('key')->unique();
+            $table->string('key');
             $table->string('type');
             $table->string('name')->nullable();
             $table->string('description')->nullable();
