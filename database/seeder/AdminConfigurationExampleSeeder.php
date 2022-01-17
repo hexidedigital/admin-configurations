@@ -76,23 +76,6 @@ HTML],
 HTML],
                 ],
             ],
-
-            'configurations' => [
-                [
-                    "key"         => 'show_admin_header',
-                    "name"        => 'Відображення навігації адміністратора на сайті',
-                    "description" => 'Дане поле відповідає за відображення навігації для адміністратора',
-                    "type"        => AdminConfiguration::BOOLEAN,
-                    'value'       => 1,
-                ],
-                [
-                    "key"         => 'show_debug_footer',
-                    "name"        => 'Відображення інструментів для відлагодження коду',
-                    "description" => 'Дане поле відповідає за відображення спеціального елементу в нижній частині екрану',
-                    "type"        => AdminConfiguration::BOOLEAN,
-                    'value'       => 1,
-                ],
-            ],
         ];
 
         $allowedKeys = array_merge((new AdminConfiguration())->getFillable(), config('translatable.locales'));
