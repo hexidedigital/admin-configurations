@@ -269,6 +269,7 @@ class AdminConfiguration extends Model implements WithTypesContract
     public static function varGroups($group = []): array
     {
         $collection = AdminConfiguration::visible()
+            ->with('translations')
             ->joinTranslations()
             ->select([
                 'admin_configurations.*',
